@@ -81,11 +81,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          tag='${{ steps.tag.outputs.tag }}'
+          zip="metrics-dashboard-${tag}.zip"
           flag=''
           [ '${{ steps.tag.outputs.prerelease }}' = 'true' ] && flag='--prerelease'
-          gh release create '${{ steps.tag.outputs.tag }}' \
-            "metrics-dashboard-${{ steps.tag.outputs.tag }}.zip" \
-            --title '${{ steps.tag.outputs.tag }}' \
-            --notes 'Released-by: ${{ github.actor }}' \
-            --generate-notes \
-            $flag
+
+          # Release notes come from a version file the team writes (markdown, in the repo).
+          # If it exists, use it as the body and append a Released-by footer; otherwise fall back
+          # to GitHub's auto-generated notes so the release still publishes.
+          notes_file="docs/release-notes/${{ inputs.version }}.md"
+          if [ -f "$notes_file" ]; then
+            body="$RUNNER_TEMP/release-notes.md"
+            cat "$notes_file" > "$body"
+            printf '\n\n---\nReleased-by: %s\n' '${{ github.actor }}' >> "$body"
+            gh release create "$tag" "$zip" --title "$tag" --notes-file "$body" $flag
+          else
+            echo "::warning::No notes file at $notes_file; using auto-generated notes."
+            gh release create "$tag" "$zip" --title "$tag" \
+              --notes 'Released-by: ${{ github.actor }}' --generate-notes $flag
+          fi
