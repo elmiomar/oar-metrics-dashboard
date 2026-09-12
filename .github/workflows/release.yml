@@ -69,7 +69,7 @@ jobs:
 
       - name: Tag and push
         run: |
-          git tag -m '${{ steps.tag.outputs.tag }}' '${{ steps.tag.outputs.tag }}'
+          git tag -m '${{ steps.tag.outputs.tag }}' -m 'Released-by: ${{ github.actor }}' '${{ steps.tag.outputs.tag }}'
           git push origin '${{ steps.tag.outputs.tag }}'
 
       - name: Package the built app
@@ -86,5 +86,6 @@ jobs:
           gh release create '${{ steps.tag.outputs.tag }}' \
             "metrics-dashboard-${{ steps.tag.outputs.tag }}.zip" \
             --title '${{ steps.tag.outputs.tag }}' \
-            --notes 'Automated release ${{ steps.tag.outputs.tag }} (integration merged into main).' \
+            --notes 'Released-by: ${{ github.actor }}' \
+            --generate-notes \
             $flag
